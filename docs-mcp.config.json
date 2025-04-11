@@ -1,0 +1,22 @@
+{
+  "gitUrl": "https://github.com/aws-amplify/docs.git",
+  "gitRef": "main",
+  "autoUpdateInterval": 60,
+  "toolName": "search_amplify_docs",
+  "toolDescription": "Search AWS Amplify documentation using the probe search engine.",
+  "ignorePatterns": [
+    "node_modules",
+    ".git",
+    "dist",
+    "build",
+    "coverage",
+    ".vitepress/cache",
+    "*.jpg",
+    "*.jpeg",
+    "*.png",
+    "*.gif",
+    "*.svg",
+    "*.mp4",
+    "*.webm"
+  ]
+}
