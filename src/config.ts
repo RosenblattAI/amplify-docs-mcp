@@ -7,8 +7,39 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Define the configuration interface
+export interface Config {
+  // Directory to include in the package (for static docs)
+  includeDir: string | null;
+
+  // Git repository URL (for dynamic docs)
+  gitUrl: string;
+
+  // Git branch or tag to checkout
+  gitRef: string;
+
+  // Auto-update interval in minutes (0 to disable)
+  autoUpdateInterval: number;
+
+  // Data directory for searching
+  dataDir: string;
+
+  // MCP Tool configuration
+  toolName: string;
+  toolDescription: string;
+
+  // Ignore patterns
+  ignorePatterns: string[];
+
+  // Enable cleanup of large/binary files after build (default: true)
+  enableBuildCleanup: boolean;
+
+  // Amplify documentation generation to include: "gen1", "gen2", or "both"
+  amplifyGeneration: string;
+}
+
 // Default configuration
-const defaultConfig = {
+const defaultConfig: Config = {
   // Directory to include in the package (for static docs)
   includeDir: null,
 
@@ -47,13 +78,16 @@ const defaultConfig = {
   ],
   // Enable cleanup of large/binary files after build (default: true)
   enableBuildCleanup: true,
+
+  // Amplify documentation generation to include (default: both)
+  amplifyGeneration: "both",
 };
 
 /**
  * Load configuration from config file and environment variables
- * @returns {Object} Configuration object
+ * @returns {Config} Configuration object
  */
-export function loadConfig() {
+export function loadConfig(): Config {
   // Parse command line arguments
   const args = minimist(process.argv.slice(2));
 
@@ -61,7 +95,7 @@ export function loadConfig() {
   const configPath =
     args.config || path.resolve(__dirname, "..", "docs-mcp.config.json");
 
-  let config = { ...defaultConfig };
+  let config: Config = { ...defaultConfig };
 
   // Load configuration from file if it exists
   if (fs.existsSync(configPath)) {
@@ -86,6 +120,8 @@ export function loadConfig() {
   if (process.env.TOOL_NAME) config.toolName = process.env.TOOL_NAME;
   if (process.env.TOOL_DESCRIPTION)
     config.toolDescription = process.env.TOOL_DESCRIPTION;
+  if (process.env.AMPLIFY_GENERATION)
+    config.amplifyGeneration = process.env.AMPLIFY_GENERATION;
 
   // Override with command line arguments
   if (args.includeDir) config.includeDir = args.includeDir;
@@ -99,6 +135,7 @@ export function loadConfig() {
   if (args.enableBuildCleanup !== undefined)
     config.enableBuildCleanup =
       args.enableBuildCleanup === true || args.enableBuildCleanup === "true";
+  if (args.amplifyGeneration) config.amplifyGeneration = args.amplifyGeneration;
 
   // Ensure dataDir is an absolute path
   if (!path.isAbsolute(config.dataDir)) {

@@ -3,14 +3,29 @@ import fs from "fs-extra";
 import path from "path";
 
 /**
+ * Search options interface
+ */
+interface SearchOptions {
+  path: string;
+  maxTokens: number;
+  skipTokens: number;
+  semanticSearch?: boolean;
+  fuzzyMatch?: boolean;
+  includeCodeSnippets?: boolean;
+  [key: string]: any; // Allow for additional properties
+}
+
+/**
  * Simple file-based cache for search results
  */
 export class SearchCache {
+  private cacheDir: string;
+
   /**
    * Create a new SearchCache
    * @param {string} cacheDir - Directory to store cache files
    */
-  constructor(cacheDir) {
+  constructor(cacheDir: string) {
     this.cacheDir = cacheDir;
     fs.ensureDirSync(cacheDir);
   }
@@ -18,11 +33,11 @@ export class SearchCache {
   /**
    * Generate a cache key from query and options
    * @param {string} query - Search query
-   * @param {Object} options - Search options
+   * @param {SearchOptions} options - Search options
    * @returns {string} Cache key
    * @private
    */
-  _generateKey(query, options) {
+  private _generateKey(query: string, options: SearchOptions): string {
     // Create a deterministic string representation of the query and relevant options
     const keyObj = {
       query,
@@ -44,10 +59,10 @@ export class SearchCache {
   /**
    * Get cached search results
    * @param {string} query - Search query
-   * @param {Object} options - Search options
+   * @param {SearchOptions} options - Search options
    * @returns {Promise<string|null>} Cached results or null if not found
    */
-  async get(query, options) {
+  async get(query: string, options: SearchOptions): Promise<string | null> {
     const key = this._generateKey(query, options);
     const cacheFile = path.join(this.cacheDir, `${key}.json`);
 
@@ -72,11 +87,15 @@ export class SearchCache {
   /**
    * Store search results in cache
    * @param {string} query - Search query
-   * @param {Object} options - Search options
+   * @param {SearchOptions} options - Search options
    * @param {string} results - Search results
    * @returns {Promise<void>}
    */
-  async set(query, options, results) {
+  async set(
+    query: string,
+    options: SearchOptions,
+    results: string
+  ): Promise<void> {
     const key = this._generateKey(query, options);
     const cacheFile = path.join(this.cacheDir, `${key}.json`);
 
@@ -91,7 +110,7 @@ export class SearchCache {
    * Clear the cache
    * @returns {Promise<void>}
    */
-  async clear() {
+  async clear(): Promise<void> {
     try {
       await fs.emptyDir(this.cacheDir);
     } catch (error) {

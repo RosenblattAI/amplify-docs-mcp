@@ -1,6 +1,6 @@
 # Amplify Docs MCP Server
 
-This is a Model Context Protocol (MCP) server that provides search functionality for AWS Amplify documentation.
+This is a Model Context Protocol (MCP) server that provides search functionality for AWS Amplify documentation. It is implemented in TypeScript for better type safety and developer experience.
 
 ## Features
 
@@ -9,6 +9,8 @@ This is a Model Context Protocol (MCP) server that provides search functionality
 - Pagination of search results
 - Caching of search results for improved performance
 - Automatic updates of documentation from the official AWS Amplify docs repository
+- Selective documentation loading (Gen 1, Gen 2, or both) to reduce disk space usage
+- TypeScript implementation for better type safety and developer experience
 
 ## Installation
 
@@ -30,8 +32,14 @@ npm install
   "gitRef": "main",
   "autoUpdateInterval": 60,
   "toolName": "search_amplify_docs",
-  "toolDescription": "Search AWS Amplify documentation using the probe search engine."
+  "toolDescription": "Search AWS Amplify documentation using the probe search engine.",
+  "amplifyGeneration": "both"
 }
+```
+
+4. Build the TypeScript code:
+```bash
+npm run build
 ```
 
 ## Usage
@@ -39,14 +47,33 @@ npm install
 ### Starting the Server
 
 ```bash
-node src/index.js
+npm start
 ```
 
 Or use the provided start script:
 
 ```bash
-./start-server.sh
+./start-server.sh [--gen1|--gen2] [--rebuild]
 ```
+
+Options:
+- `--gen1`: Include only Gen 1 documentation (reduces disk space usage)
+- `--gen2`: Include only Gen 2 documentation (reduces disk space usage)
+- `--rebuild`: Force rebuild of data directory
+
+Examples:
+```bash
+# Start with both Gen 1 and Gen 2 documentation (default)
+./start-server.sh
+
+# Start with only Gen 1 documentation
+./start-server.sh --gen1
+
+# Start with only Gen 2 documentation and force rebuild
+./start-server.sh --gen2 --rebuild
+```
+
+The start script will automatically build the TypeScript code if needed.
 
 ### Using the Search Tool
 
@@ -85,15 +112,21 @@ The server can be configured using the `docs-mcp.config.json` file:
 - `toolName`: Name of the search tool
 - `toolDescription`: Description of the search tool
 - `ignorePatterns`: Array of patterns to ignore when searching
+- `amplifyGeneration`: Which Amplify documentation generation to include:
+  - `"both"`: Include both Gen 1 and Gen 2 documentation (default)
+  - `"gen1"`: Include only Gen 1 documentation (reduces disk space usage)
+  - `"gen2"`: Include only Gen 2 documentation (reduces disk space usage)
 
 ## Development
 
 ### Project Structure
 
-- `src/index.js`: Main server implementation
-- `src/config.js`: Configuration loading and processing
-- `src/git.js`: Git repository management
-- `src/cache.js`: Search result caching
+- `src/index.ts`: Main server implementation
+- `src/config.ts`: Configuration loading and processing
+- `src/git.ts`: Git repository management
+- `src/cache.ts`: Search result caching
+- `src/types/`: TypeScript type definitions
+- `dist/`: Compiled JavaScript files
 
 ### Adding New Features
 

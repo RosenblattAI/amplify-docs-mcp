@@ -7,6 +7,9 @@ node_modules/
 # Data directory (contains cloned AWS Amplify docs)
 data/
 
+# Build output
+dist/
+
 # Cache files
 .cache/
 

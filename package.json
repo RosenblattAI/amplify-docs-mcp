@@ -14,8 +14,11 @@
     "docs-mcp.config.json"
   ],
   "scripts": {
-    "build": "node scripts/build.js",
-    "start": "node src/index.js"
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsc --watch & node dist/index.js",
+    "build:js": "node scripts/build.js",
+    "postbuild": "node scripts/build.js"
   },
   "keywords": [
     "probe",
@@ -34,5 +37,11 @@
     "minimist": "^1.2.8",
     "simple-git": "^3.22.0",
     "tar": "^7.1.0"
+  },
+  "devDependencies": {
+    "@types/fs-extra": "^11.0.4",
+    "@types/minimist": "^1.2.5",
+    "@types/node": "^22.14.0",
+    "typescript": "^5.8.3"
   }
 }
