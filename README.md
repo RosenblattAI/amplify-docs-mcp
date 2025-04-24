@@ -165,6 +165,27 @@ The search tool supports advanced search syntax:
 - **Wildcards**: `auth*`
 - **Boolean operators**: `authentication AND (react OR javascript) NOT flutter`
 
+### How the Query Process Works
+
+When you submit a search query, the server processes it through several steps:
+
+1. **Query Processing**: The server parses your query to understand advanced syntax like boolean operators and wildcards.
+
+2. **Directory Optimization**: The server uses the directory structure to narrow down which files to search based on your query terms and the selected Amplify generation (Gen 1, Gen 2, or both).
+
+3. **Smart Ranking**: Results are ranked using a sophisticated algorithm that considers:
+   - Whether the query mentions specific generations (Gen 1 or Gen 2)
+   - If the query is about setup, CLI commands, or resource creation
+   - The relevance of the document to the query context
+   - Exact matches in document titles
+   - Match count and document importance
+
+4. **Content Extraction**: For each matching file, relevant content is extracted and formatted for display.
+
+5. **Caching**: Search results are cached to improve performance for repeated queries.
+
+This intelligent processing ensures that the most relevant documentation appears at the top of your search results, saving you time and effort.
+
 ## Generation Selection
 
 The server supports three modes for Amplify documentation generation:
