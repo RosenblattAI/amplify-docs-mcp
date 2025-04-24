@@ -103,6 +103,7 @@ class AmplifyDocsMcpServer {
   private server: Server;
   private cache: SearchCache;
   private sessionCaches: Map<string, SessionCache> = new Map();
+  private probeSessionCache: { [key: string]: any } = {};
   private headingIndex: HeadingIndex = {};
   private lastHeadingIndexUpdate: number = 0;
   private directoryManager: DirectoryManager;
@@ -458,6 +459,38 @@ class AmplifyDocsMcpServer {
           return lowerPath.includes("/src/pages/[platform]/");
         };
 
+        // Helper function to determine if a path contains project setup information
+        const isSetupDoc = (path: string): boolean => {
+          const lowerPath = path.toLowerCase();
+          // Setup documentation patterns
+          return (
+            lowerPath.includes("/start/") ||
+            lowerPath.includes("/getting-started/") ||
+            lowerPath.includes("/setup/") ||
+            lowerPath.includes("/installation/") ||
+            lowerPath.includes("/quickstart/") ||
+            lowerPath.includes("/project-setup/") ||
+            lowerPath.includes("/prerequisites/") ||
+            lowerPath.includes("/init/") ||
+            lowerPath.includes("/create-new-app/")
+          );
+        };
+
+        // Helper function to identify Gen 2 CLI command documentation
+        const isGen2CliDoc = (path: string): boolean => {
+          const lowerPath = path.toLowerCase();
+          return lowerPath.includes("[platform]/reference/cli-commands/");
+        };
+
+        // Helper function to identify Gen 1 CLI command documentation
+        const isGen1CliDoc = (path: string): boolean => {
+          const lowerPath = path.toLowerCase();
+          return (
+            lowerPath.includes("/gen1/") &&
+            lowerPath.includes("/tools/cli/commands/")
+          );
+        };
+
         // Helper function to determine if a path is likely Gen 2 documentation
         const isGen2Doc = (path: string): boolean => {
           const lowerPath = path.toLowerCase();
@@ -472,7 +505,10 @@ class AmplifyDocsMcpServer {
             lowerPath.includes("/auth/") ||
             lowerPath.includes("/storage/") ||
             lowerPath.includes("/function/") ||
-            lowerPath.includes("cdk")
+            lowerPath.includes("cdk") ||
+            // Code-first approach indicators
+            lowerPath.includes("typescript") ||
+            lowerPath.includes("code-first")
           );
         };
 
@@ -489,10 +525,119 @@ class AmplifyDocsMcpServer {
           );
         };
 
-        // Check if the query explicitly mentions Gen 1
+        // Check if the query is related to project setup or installation
+        const isSetupQuery = processedQuery
+          .toLowerCase()
+          .match(
+            /(setup|install|create|start|init|begin|new project|getting started|quickstart|prerequisites)/
+          );
+
+        // Check if the query is related to CLI commands
+        const isCliQuery = processedQuery
+          .toLowerCase()
+          .match(/(cli|command|commands|amplify\s+\w+|cdk\s+\w+)/);
+
+        // Check if the query is related to creating resources
+        const isResourceCreationQuery = processedQuery
+          .toLowerCase()
+          .match(
+            /(create|add|define|implement|build|configure)\s+(resource|api|auth|storage|function|database|model)/
+          );
+
+        // Check if query explicitly mentions Gen 2
+        const queryMentionsGen2 =
+          processedQuery.toLowerCase().includes("gen2") ||
+          processedQuery.toLowerCase().includes("gen 2");
+
+        // Check if query explicitly mentions Gen 1
         const queryMentionsGen1 =
           processedQuery.toLowerCase().includes("gen1") ||
           processedQuery.toLowerCase().includes("gen 1");
+
+        // Check if paths contain setup documentation
+        const aIsSetup = isSetupDoc(a.path);
+        const bIsSetup = isSetupDoc(b.path);
+
+        // Check if paths contain CLI documentation
+        const aIsGen2Cli = isGen2CliDoc(a.path);
+        const bIsGen2Cli = isGen2CliDoc(b.path);
+        const aIsGen1Cli = isGen1CliDoc(a.path);
+        const bIsGen1Cli = isGen1CliDoc(b.path);
+
+        // Helper function to determine if a path contains TypeScript code examples
+        const hasTypeScriptExamples = (path: string): boolean => {
+          const lowerPath = path.toLowerCase();
+          return (
+            lowerPath.includes("typescript") ||
+            lowerPath.includes("code-first") ||
+            lowerPath.includes("cdk") ||
+            (lowerPath.includes(".ts") && !lowerPath.includes("/fragments/"))
+          );
+        };
+
+        // Helper function to determine if a path contains CLI command examples
+        const hasCliExamples = (path: string): boolean => {
+          const lowerPath = path.toLowerCase();
+          return (
+            lowerPath.includes("/cli/") ||
+            lowerPath.includes("command") ||
+            lowerPath.includes("commands")
+          );
+        };
+
+        // Check if paths contain TypeScript or CLI examples
+        const aHasTypeScript = hasTypeScriptExamples(a.path);
+        const bHasTypeScript = hasTypeScriptExamples(b.path);
+        const aHasCli = hasCliExamples(a.path);
+        const bHasCli = hasCliExamples(b.path);
+
+        // If query is about CLI commands, prioritize the appropriate CLI docs
+        if (isCliQuery) {
+          if (queryMentionsGen2) {
+            // Prioritize Gen 2 CLI docs for Gen 2 CLI queries
+            if (aIsGen2Cli && !bIsGen2Cli) return -1;
+            if (!aIsGen2Cli && bIsGen2Cli) return 1;
+          } else if (queryMentionsGen1) {
+            // Prioritize Gen 1 CLI docs for Gen 1 CLI queries
+            if (aIsGen1Cli && !bIsGen1Cli) return -1;
+            if (!aIsGen1Cli && bIsGen1Cli) return 1;
+          } else if (config.amplifyGeneration === "gen2") {
+            // Default to Gen 2 CLI docs if configured for Gen 2
+            if (aIsGen2Cli && !bIsGen2Cli) return -1;
+            if (!aIsGen2Cli && bIsGen2Cli) return 1;
+          } else if (config.amplifyGeneration === "gen1") {
+            // Default to Gen 1 CLI docs if configured for Gen 1
+            if (aIsGen1Cli && !bIsGen1Cli) return -1;
+            if (!aIsGen1Cli && bIsGen1Cli) return 1;
+          }
+        }
+
+        // If query is about creating resources, prioritize based on generation
+        if (isResourceCreationQuery) {
+          if (queryMentionsGen2) {
+            // For Gen 2, prioritize TypeScript/code-first examples
+            if (aHasTypeScript && !bHasTypeScript) return -1;
+            if (!aHasTypeScript && bHasTypeScript) return 1;
+          } else if (queryMentionsGen1) {
+            // For Gen 1, prioritize CLI examples
+            if (aHasCli && !bHasCli) return -1;
+            if (!aHasCli && bHasCli) return 1;
+          } else if (config.amplifyGeneration === "gen2") {
+            // Default to TypeScript examples if configured for Gen 2
+            if (aHasTypeScript && !bHasTypeScript) return -1;
+            if (!aHasTypeScript && bHasTypeScript) return 1;
+          } else if (config.amplifyGeneration === "gen1") {
+            // Default to CLI examples if configured for Gen 1
+            if (aHasCli && !bHasCli) return -1;
+            if (!aHasCli && bHasCli) return 1;
+          }
+        }
+
+        // If query is about setup and one path is a setup doc, prioritize it
+        if (isSetupQuery) {
+          if (aIsSetup && !bIsSetup) return -1;
+          if (!aIsSetup && bIsSetup) return 1;
+        }
 
         // Check if paths are from main platform docs
         const aIsMainPlatform = isMainPlatformDoc(a.path);
@@ -576,6 +721,12 @@ class AmplifyDocsMcpServer {
 
       try {
         // Call search with the options object
+        if (args.sessionId) {
+          if (!this.probeSessionCache[args.sessionId]) {
+            this.probeSessionCache[args.sessionId] = {};
+          }
+          options.session = this.probeSessionCache[args.sessionId];
+        }
         const result = await search(options);
         console.log("Search results type:", typeof result);
         console.log(
@@ -1061,8 +1212,95 @@ class AmplifyDocsMcpServer {
       }
     }
 
-    // Convert to array and sort by heading level (lower levels first)
-    return Object.values(headingMatches).sort((a, b) => a.level - b.level);
+    // Check if query is related to setup or resource creation
+    const isSetupQuery = query
+      .toLowerCase()
+      .match(
+        /(setup|install|create|start|init|begin|new project|getting started)/
+      );
+
+    const isResourceCreationQuery = query
+      .toLowerCase()
+      .match(
+        /(create|add|define|implement|build|configure)\s+(resource|api|auth|storage|function|database|model)/
+      );
+
+    // Check if query mentions specific generation
+    const mentionsGen1 =
+      query.toLowerCase().includes("gen1") ||
+      query.toLowerCase().includes("gen 1");
+    const mentionsGen2 =
+      query.toLowerCase().includes("gen2") ||
+      query.toLowerCase().includes("gen 2");
+
+    // Convert to array for sorting
+    let headings = Object.values(headingMatches);
+
+    // Apply custom sorting based on query context
+    if (isSetupQuery || isResourceCreationQuery) {
+      headings.sort((a, b) => {
+        const aPath = a.path.toLowerCase();
+        const bPath = b.path.toLowerCase();
+        const aHeading = a.heading.toLowerCase();
+        const bHeading = b.heading.toLowerCase();
+
+        // Helper functions to identify content type
+        const isTypeScriptContent = (
+          path: string,
+          heading: string
+        ): boolean => {
+          return (
+            path.includes("typescript") ||
+            path.includes("code-first") ||
+            path.includes("cdk") ||
+            heading.includes("typescript") ||
+            heading.includes("code-first")
+          );
+        };
+
+        const isCliContent = (path: string, heading: string): boolean => {
+          return (
+            path.includes("/cli/") ||
+            path.includes("command") ||
+            heading.includes("cli") ||
+            heading.includes("command")
+          );
+        };
+
+        // Check content types
+        const aIsTypeScript = isTypeScriptContent(aPath, aHeading);
+        const bIsTypeScript = isTypeScriptContent(bPath, bHeading);
+        const aIsCli = isCliContent(aPath, aHeading);
+        const bIsCli = isCliContent(bPath, bHeading);
+
+        // Prioritize based on generation
+        if (mentionsGen2) {
+          // For Gen 2, prioritize TypeScript/code-first content
+          if (aIsTypeScript && !bIsTypeScript) return -1;
+          if (!aIsTypeScript && bIsTypeScript) return 1;
+        } else if (mentionsGen1) {
+          // For Gen 1, prioritize CLI content
+          if (aIsCli && !bIsCli) return -1;
+          if (!aIsCli && bIsCli) return 1;
+        } else if (config.amplifyGeneration === "gen2") {
+          // Default to TypeScript content if configured for Gen 2
+          if (aIsTypeScript && !bIsTypeScript) return -1;
+          if (!aIsTypeScript && bIsTypeScript) return 1;
+        } else if (config.amplifyGeneration === "gen1") {
+          // Default to CLI content if configured for Gen 1
+          if (aIsCli && !bIsCli) return -1;
+          if (!aIsCli && bIsCli) return 1;
+        }
+
+        // Fall back to heading level sorting
+        return a.level - b.level;
+      });
+
+      return headings;
+    }
+
+    // Default sorting by heading level (lower levels first)
+    return headings.sort((a, b) => a.level - b.level);
   }
 
   async run(): Promise<void> {

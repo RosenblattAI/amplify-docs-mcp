@@ -1,31 +1,45 @@
-# Amplify Docs MCP Server
+# AWS Amplify Documentation MCP Server
 
-This is a Model Context Protocol (MCP) server that provides search functionality for AWS Amplify documentation. It is implemented in TypeScript for better type safety and developer experience.
+A Model Context Protocol (MCP) server that provides powerful search functionality for AWS Amplify documentation. This server clones the official AWS Amplify documentation repository and makes it searchable through a simple MCP tool interface.
 
 ## Features
 
-- Search AWS Amplify documentation using natural language queries
-- Support for advanced search syntax (boolean operators, wildcards, etc.)
-- Pagination of search results
-- Caching of search results for improved performance
-- Automatic updates of documentation from the official AWS Amplify docs repository
-- Selective documentation loading (Gen 1, Gen 2, or both) to reduce disk space usage
-- TypeScript implementation for better type safety and developer experience
+- **Powerful Search**: Search AWS Amplify documentation using natural language queries
+- **Advanced Search Syntax**: Support for boolean operators, wildcards, field-specific search, and more
+- **Smart Results Ranking**: Intelligent ranking of search results based on relevance to query
+- **Pagination**: Navigate through large result sets with pagination support
+- **Performance Caching**: Caching of search results for improved performance
+- **Auto-Updates**: Automatic updates of documentation from the official AWS Amplify repository
+- **Generation Selection**: Choose between Gen 1, Gen 2, or both documentation sets to optimize disk usage and search radius.
+- **TypeScript Implementation**: Built with TypeScript for better type safety and developer experience
+
+> **Disclaimer**: This is a personal project and is not affiliated with, endorsed by, or officially connected to AWS Amplify or Amazon Web Services. This tool is provided as-is without any guarantees or warranty.
 
 ## Installation
 
 1. Clone this repository:
+
 ```bash
-git clone https://github.com/yourusername/amplify-docs-mcp.git
-cd amplify-docs-mcp
+git clone https://github.com/ykethan/amplify-doc-mcp.git
+cd amplify-doc-mcp
 ```
 
-2. Install dependencies:
+1. Install dependencies:
+
 ```bash
 npm install
 ```
 
-3. Configure the server by editing `docs-mcp.config.json`:
+1. Build the TypeScript code:
+
+```bash
+npm run build
+```
+
+## Configuration
+
+The server is configured using the `docs-mcp.config.json` file:
+
 ```json
 {
   "gitUrl": "https://github.com/aws-amplify/docs.git",
@@ -33,14 +47,37 @@ npm install
   "autoUpdateInterval": 60,
   "toolName": "search_amplify_docs",
   "toolDescription": "Search AWS Amplify documentation using the probe search engine.",
-  "amplifyGeneration": "both"
+  "ignorePatterns": [
+    "node_modules",
+    ".git",
+    "dist",
+    "build",
+    "coverage",
+    ".vitepress/cache",
+    "*.jpg",
+    "*.jpeg",
+    "*.png",
+    "*.gif",
+    "*.svg",
+    "*.mp4",
+    "*.webm"
+  ],
+  "amplifyGeneration": "gen2"
 }
 ```
 
-4. Build the TypeScript code:
-```bash
-npm run build
-```
+### Configuration Options
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `gitUrl` | URL of the Git repository to clone for documentation | `"https://github.com/aws-amplify/docs.git"` |
+| `gitRef` | Git branch or tag to checkout | `"main"` |
+| `autoUpdateInterval` | Interval in minutes to check for updates (0 to disable) | `60` |
+| `dataDir` | Directory to store documentation data | `"./data"` |
+| `toolName` | Name of the search tool | `"search_amplify_docs"` |
+| `toolDescription` | Description of the search tool | `"Search AWS Amplify documentation using the probe search engine."` |
+| `ignorePatterns` | Array of patterns to ignore when searching | `["node_modules", ".git", ...]` |
+| `amplifyGeneration` | Which Amplify documentation generation to include | `"gen2"` |
 
 ## Usage
 
@@ -50,20 +87,22 @@ npm run build
 npm start
 ```
 
-Or use the provided start script:
+Or use the provided start script with options:
 
 ```bash
 ./start-server.sh [--gen1|--gen2] [--rebuild]
 ```
 
-Options:
+#### Options
+
 - `--gen1`: Include only Gen 1 documentation (reduces disk space usage)
 - `--gen2`: Include only Gen 2 documentation (reduces disk space usage)
 - `--rebuild`: Force rebuild of data directory
 
-Examples:
+#### Examples
+
 ```bash
-# Start with both Gen 1 and Gen 2 documentation (default)
+# Start with both Gen 1 and Gen 2 documentation
 ./start-server.sh
 
 # Start with only Gen 1 documentation
@@ -73,21 +112,32 @@ Examples:
 ./start-server.sh --gen2 --rebuild
 ```
 
-The start script will automatically build the TypeScript code if needed.
-
-### Using the Search Tool
+### MCP Tool: search_amplify_docs
 
 The server provides a tool called `search_amplify_docs` that can be used to search the Amplify documentation.
 
-Parameters:
-- `query` (required): The search query string
-- `page` (optional): Page number for pagination (default: 1)
+#### Parameters
 
-Example:
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `query` | string | Yes | - | Elasticsearch query string |
+| `page` | number | No | 1 | Page number for pagination |
+| `includeContent` | boolean | No | false | Include content snippets in results |
+| `maxResults` | number | No | 10 | Maximum number of results to return |
+| `filesOnly` | boolean | No | false | Only return file paths without content |
+| `useJson` | boolean | No | false | Return results in JSON format |
+| `sessionId` | string | No | - | Session ID for related searches |
+| `fullContent` | boolean | No | false | Get full content of a specific file |
+| `filePath` | string | No | - | Path to a specific file to get full content |
+
+#### Example Request
+
 ```json
 {
   "query": "authentication react",
-  "page": 1
+  "page": 1,
+  "includeContent": true,
+  "maxResults": 15
 }
 ```
 
@@ -95,47 +145,85 @@ Example:
 
 The search tool supports advanced search syntax:
 
-- Use quotes for exact phrases: `"authentication flow"`
-- Exclude terms with minus: `authentication -flutter`
-- Use field-specific search: `title:authentication`
-- Use wildcards: `auth*`
-- Use boolean operators: `authentication AND (react OR javascript) NOT flutter`
+- **Exact phrases**: `"authentication flow"`
+- **Exclude terms**: `authentication -flutter`
+- **Field-specific search**: `title:authentication`
+- **Wildcards**: `auth*`
+- **Boolean operators**: `authentication AND (react OR javascript) NOT flutter`
 
-## Configuration Options
+## Generation Selection
 
-The server can be configured using the `docs-mcp.config.json` file:
+The server supports three modes for Amplify documentation generation:
 
-- `gitUrl`: URL of the Git repository to clone for documentation
-- `gitRef`: Git branch or tag to checkout
-- `autoUpdateInterval`: Interval in minutes to check for updates (0 to disable)
-- `dataDir`: Directory to store documentation data
-- `toolName`: Name of the search tool
-- `toolDescription`: Description of the search tool
-- `ignorePatterns`: Array of patterns to ignore when searching
-- `amplifyGeneration`: Which Amplify documentation generation to include:
-  - `"both"`: Include both Gen 1 and Gen 2 documentation (default)
-  - `"gen1"`: Include only Gen 1 documentation (reduces disk space usage)
-  - `"gen2"`: Include only Gen 2 documentation (reduces disk space usage)
+### 1. Both Generations (Default)
 
-## Development
+```json
+"amplifyGeneration": "both"
+```
 
-### Project Structure
+- **Pros**: Complete documentation coverage
+- **Cons**: Lot more search area, can cause incorrect information as Gen 1 and Gen 2 nearly have same resources.
+- **Recommendation**: Use Gen 1 or Gen 2 only for better results
+
+### 2. Gen 1 Only
+
+```json
+"amplifyGeneration": "gen1"
+```
+
+- **Pros**: Reduced disk space, focused on classic Amplify implementation
+- **Cons**: Missing newer Gen 2 documentation
+- **Recommended for**: Projects specifically using Amplify Gen 1 features
+
+### 3. Gen 2 Only
+
+```json
+"amplifyGeneration": "gen2"
+```
+
+- **Pros**: Reduced disk space, focused on modern Amplify implementation
+- **Cons**: Missing legacy Gen 1 documentation
+- **Recommended for**: New projects using Amplify Gen 2 features
+
+## Project Structure
 
 - `src/index.ts`: Main server implementation
 - `src/config.ts`: Configuration loading and processing
 - `src/git.ts`: Git repository management
 - `src/cache.ts`: Search result caching
+- `src/directory.ts`: Directory structure management
 - `src/types/`: TypeScript type definitions
-- `dist/`: Compiled JavaScript files
+- `scripts/build.js`: Build script for preparing documentation
+- `bin/mcp`: Executable script for running the server
 
-### Adding New Features
+## Recommendations for Usage
 
-To add new features to the server:
+1. **Optimize for Your Environment**:
+   - For production environments with limited disk space, use `--gen1` or `--gen2` based on your project needs
+   - For development environments, use both generations for comprehensive documentation
 
-1. Modify the appropriate file in the `src` directory
-2. Test your changes using the test scripts
-3. Update the documentation as needed
+2. **Search Optimization**:
+   - Use specific technical terms rather than general phrases
+   - Include category names to narrow results (e.g., "storage owner access" instead of just "access")
+   - Use quotes for exact phrase matching
+   - Include abbreviations and alternative terms to improve results
+
+3. **Performance Considerations**:
+   - Set an appropriate `autoUpdateInterval` based on your needs (higher values reduce server load)
+   - Use the caching system for frequently accessed queries
+   - Consider using `filesOnly: true` for initial broad searches to improve performance
+
+## Contributing and Feedback
+
+We welcome contributions and feedback to improve this MCP server. If you have suggestions for:
+
+- Improving search query results
+- Enhancing the ranking algorithm
+- Adding new features or parameters
+- Optimizing performance
+
+Please open an issue or submit a pull request on GitHub. Your feedback helps make this tool more effective for everyone. Along the way learn something new.
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the MIT License.
