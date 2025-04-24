@@ -197,7 +197,7 @@ The server supports three modes for Amplify documentation generation:
 ```
 
 - **Pros**: Complete documentation coverage
-- **Cons**: Lot more search area, can cause incorrect information as Gen 1 and Gen 2 nearly have same resources.
+- **Cons**: Lot more search area, can cause incorrect information as Gen 1 and Gen 2 nearly have same categories and information.
 - **Recommendation**: Use Gen 1 or Gen 2 only for better results
 
 ### 2. Gen 1 Only
@@ -206,9 +206,7 @@ The server supports three modes for Amplify documentation generation:
 "amplifyGeneration": "gen1"
 ```
 
-- **Pros**: Reduced disk space, focused on classic Amplify implementation
-- **Cons**: Missing newer Gen 2 documentation
-- **Recommended for**: Projects specifically using Amplify Gen 1 features
+- **Recommended for**: Legacy projects specifically using Amplify Gen 1 features
 
 ### 3. Gen 2 Only
 
@@ -216,8 +214,6 @@ The server supports three modes for Amplify documentation generation:
 "amplifyGeneration": "gen2"
 ```
 
-- **Pros**: Reduced disk space, focused on modern Amplify implementation
-- **Cons**: Missing legacy Gen 1 documentation
 - **Recommended for**: New projects using Amplify Gen 2 features
 
 ## Project Structure
