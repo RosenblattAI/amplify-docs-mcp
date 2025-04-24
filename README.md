@@ -223,6 +223,11 @@ We welcome contributions and feedback to improve this MCP server. If you have su
 
 Please open an issue or submit a pull request on GitHub. Your feedback helps make this tool more effective for everyone. Along the way learn something new.
 
+## System Requirements
+
+- Node.js 18.x or higher (tested with Node.js 20.18.2)
+- npm 8.x or higher (tested with npm 10.8.2)
+
 ## License
 
 This project is licensed under the MIT License.
