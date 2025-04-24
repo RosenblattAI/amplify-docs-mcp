@@ -199,8 +199,7 @@ The server supports three modes for Amplify documentation generation:
 ## Recommendations for Usage
 
 1. **Optimize for Your Environment**:
-   - For production environments with limited disk space, use `--gen1` or `--gen2` based on your project needs
-   - For development environments, use both generations for comprehensive documentation
+   - For best search results, use `"amplifyGeneration"` as `"gen1"` or `"gen2"` only
 
 2. **Search Optimization**:
    - Use specific technical terms rather than general phrases
