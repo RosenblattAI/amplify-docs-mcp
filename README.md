@@ -79,6 +79,20 @@ The server is configured using the `docs-mcp.config.json` file:
 | `ignorePatterns` | Array of patterns to ignore when searching | `["node_modules", ".git", ...]` |
 | `amplifyGeneration` | Which Amplify documentation generation to include | `"gen2"` |
 
+### Auto-Update Mechanism
+
+The server includes an automatic update mechanism that keeps the documentation up-to-date:
+
+1. When the server starts, it clones the documentation repository specified in `gitUrl`.
+2. If `autoUpdateInterval` is set to a value greater than 0, the server will periodically check for updates.
+3. Every `autoUpdateInterval` minutes, the server:
+   - Fetches the latest changes from the remote repository
+   - Checks if the local branch is behind the remote branch
+   - If updates are available, pulls the changes automatically
+   - If no updates are needed, continues with the current documentation
+
+This ensures that your documentation search results always include the latest information without requiring a server restart.
+
 ## Usage
 
 ### Starting the Server
