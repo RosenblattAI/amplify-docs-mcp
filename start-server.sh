@@ -4,18 +4,29 @@
 echo "Starting Amplify Docs MCP server..."
 
 # Parse command line arguments
-AMPLIFY_GEN="both"
+AMPLIFY_GEN="gen2"  # Default to Gen 2
 REBUILD=false
 
 # Process command line arguments
 while [[ $# -gt 0 ]]; do
   case $1 in
-    --gen1)
-      AMPLIFY_GEN="gen1"
+    --gen)
       shift
-      ;;
-    --gen2)
-      AMPLIFY_GEN="gen2"
+      if [[ $1 == "1" || $1 == "gen1" ]]; then
+        AMPLIFY_GEN="gen1"
+      elif [[ $1 == "2" || $1 == "gen2" ]]; then
+        AMPLIFY_GEN="gen2"
+      elif [[ $1 == "both" ]]; then
+        AMPLIFY_GEN="both"
+      else
+        echo "Invalid generation: $1"
+        echo "Usage: $0 [--gen <1|2|both>] [--rebuild]"
+        echo "  --gen 1: Include only Gen 1 documentation"
+        echo "  --gen 2: Include only Gen 2 documentation"
+        echo "  --gen both: Include both Gen 1 and Gen 2 documentation"
+        echo "  --rebuild: Force rebuild of data directory"
+        exit 1
+      fi
       shift
       ;;
     --rebuild)
@@ -25,9 +36,10 @@ while [[ $# -gt 0 ]]; do
     *)
       # Unknown option
       echo "Unknown option: $1"
-      echo "Usage: $0 [--gen1|--gen2] [--rebuild]"
-      echo "  --gen1: Include only Gen 1 documentation"
-      echo "  --gen2: Include only Gen 2 documentation"
+      echo "Usage: $0 [--gen <1|2|both>] [--rebuild]"
+      echo "  --gen 1: Include only Gen 1 documentation"
+      echo "  --gen 2: Include only Gen 2 documentation"
+      echo "  --gen both: Include both Gen 1 and Gen 2 documentation"
       echo "  --rebuild: Force rebuild of data directory"
       exit 1
       ;;
@@ -57,7 +69,8 @@ if [ "$REBUILD" = true ]; then
   if [ -f "$CONFIG_FILE" ]; then
     # Create a temporary file with the updated configuration
     TMP_FILE=$(mktemp)
-    cat "$CONFIG_FILE" | sed 's/"amplifyGeneration": "both"/"amplifyGeneration": "'$AMPLIFY_GEN'"/' > "$TMP_FILE"
+    # Replace either "both" or "gen2" with the new value
+    cat "$CONFIG_FILE" | sed -E 's/"amplifyGeneration": "(both|gen1|gen2)"/"amplifyGeneration": "'$AMPLIFY_GEN'"/' > "$TMP_FILE"
     # Replace the original file with the updated one
     mv "$TMP_FILE" "$CONFIG_FILE"
     echo "Updated configuration file with amplifyGeneration: $AMPLIFY_GEN"

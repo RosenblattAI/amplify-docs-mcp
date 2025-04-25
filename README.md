@@ -104,27 +104,43 @@ npm start
 Or use the provided start script with options:
 
 ```bash
-./start-server.sh [--gen1|--gen2] [--rebuild]
+./start-server.sh [--gen <1|2|both>] [--rebuild]
 ```
 
 #### Options
 
-- `--gen1`: Include only Gen 1 documentation (reduces disk space usage)
-- `--gen2`: Include only Gen 2 documentation (reduces disk space usage)
+- `--gen 1`: Include only Gen 1 documentation (reduces disk space usage)
+- `--gen 2`: Include only Gen 2 documentation (default, reduces disk space usage)
+- `--gen both`: Include both Gen 1 and Gen 2 documentation
 - `--rebuild`: Force rebuild of data directory
 
 #### Examples
 
 ```bash
-# Start with both Gen 1 and Gen 2 documentation
+# Start with Gen 2 documentation (default)
 ./start-server.sh
 
 # Start with only Gen 1 documentation
-./start-server.sh --gen1
+./start-server.sh --gen 1
+
+# Start with both Gen 1 and Gen 2 documentation
+./start-server.sh --gen both
 
 # Start with only Gen 2 documentation and force rebuild
-./start-server.sh --gen2 --rebuild
+./start-server.sh --gen 2 --rebuild
 ```
+
+> **Important**: When switching between different generation options (e.g., from Gen 1 to Gen 2 or vice versa), it's recommended to use the `--rebuild` flag to ensure a clean repository. This will remove the data directory and clone the repository again, ensuring that the correct files are included based on the selected generation.
+>
+> For example:
+>
+> ```bash
+> # Switch from Gen 2 to Gen 1 with a clean rebuild
+> ./start-server.sh --gen 1 --rebuild
+> 
+> # Switch from Gen 1 to Gen 2 with a clean rebuild
+> ./start-server.sh --gen 2 --rebuild
+> ```
 
 ### MCP Tool: search_amplify_docs
 
@@ -190,15 +206,15 @@ This intelligent processing ensures that the most relevant documentation appears
 
 The server supports three modes for Amplify documentation generation:
 
-### 1. Both Generations (Default)
+### 1. Gen 2 Only (Default)
 
 ```json
-"amplifyGeneration": "both"
+"amplifyGeneration": "gen2"
 ```
 
-- **Pros**: Complete documentation coverage
-- **Cons**: Lot more search area, can cause incorrect information as Gen 1 and Gen 2 nearly have same categories and information.
-- **Recommendation**: Use Gen 1 or Gen 2 only for better results
+- **Pros**: Focused on modern Amplify implementation, reduced disk space usage
+- **Recommended for**: New projects using Amplify Gen 2 features
+- **Default**: This is the default setting as Gen 2 is the current version of Amplify
 
 ### 2. Gen 1 Only
 
@@ -206,15 +222,18 @@ The server supports three modes for Amplify documentation generation:
 "amplifyGeneration": "gen1"
 ```
 
+- **Pros**: Focused on classic Amplify implementation, reduced disk space usage
 - **Recommended for**: Legacy projects specifically using Amplify Gen 1 features
 
-### 3. Gen 2 Only
+### 3. Both Generations
 
 ```json
-"amplifyGeneration": "gen2"
+"amplifyGeneration": "both"
 ```
 
-- **Recommended for**: New projects using Amplify Gen 2 features
+- **Pros**: Complete documentation coverage
+- **Cons**: Larger search area, can cause confusion as Gen 1 and Gen 2 have similar categories
+- **Use when**: You need to reference both generations simultaneously
 
 ## Project Structure
 

@@ -19,5 +19,5 @@
     "*.mp4",
     "*.webm"
   ],
-  "amplifyGeneration": "gen2"
+  "amplifyGeneration": "both"
 }

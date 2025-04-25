@@ -1,7 +1,7 @@
-import fs from "fs-extra";
-import minimist from "minimist";
-import path from "path";
-import { fileURLToPath } from "url";
+import fs from 'fs-extra';
+import minimist from 'minimist';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 // Get the directory of the current module
 const __filename = fileURLToPath(import.meta.url);
@@ -44,43 +44,43 @@ const defaultConfig: Config = {
   includeDir: null,
 
   // Git repository URL (for dynamic docs)
-  gitUrl: "https://github.com/aws-amplify/docs.git",
+  gitUrl: 'https://github.com/aws-amplify/docs.git',
 
   // Git branch or tag to checkout
-  gitRef: "main",
+  gitRef: 'main',
 
   // Auto-update interval in minutes (0 to disable)
   autoUpdateInterval: 60, // Default to 60 minutes
 
   // Data directory for searching
-  dataDir: path.resolve(__dirname, "..", "data"),
+  dataDir: path.resolve(__dirname, '..', 'data'),
 
   // MCP Tool configuration
-  toolName: "search_amplify_docs",
+  toolName: 'search_amplify_docs',
   toolDescription:
-    "Search AWS Amplify documentation using the probe search engine.",
+    'Search AWS Amplify documentation using the probe search engine.',
 
   // Ignore patterns
   ignorePatterns: [
-    "node_modules",
-    ".git",
-    "dist",
-    "build",
-    "coverage",
-    ".vitepress/cache",
-    "*.jpg",
-    "*.jpeg",
-    "*.png",
-    "*.gif",
-    "*.svg",
-    "*.mp4",
-    "*.webm",
+    'node_modules',
+    '.git',
+    'dist',
+    'build',
+    'coverage',
+    '.vitepress/cache',
+    '*.jpg',
+    '*.jpeg',
+    '*.png',
+    '*.gif',
+    '*.svg',
+    '*.mp4',
+    '*.webm',
   ],
   // Enable cleanup of large/binary files after build (default: true)
   enableBuildCleanup: true,
 
-  // Amplify documentation generation to include (default: both)
-  amplifyGeneration: "both",
+  // Amplify documentation generation to include (default: gen2)
+  amplifyGeneration: 'gen2',
 };
 
 /**
@@ -93,14 +93,14 @@ export function loadConfig(): Config {
 
   // Check for config file path in arguments
   const configPath =
-    args.config || path.resolve(__dirname, "..", "docs-mcp.config.json");
+    args.config || path.resolve(__dirname, '..', 'docs-mcp.config.json');
 
   let config: Config = { ...defaultConfig };
 
   // Load configuration from file if it exists
   if (fs.existsSync(configPath)) {
     try {
-      const fileConfig = JSON.parse(fs.readFileSync(configPath, "utf-8"));
+      const fileConfig = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
       config = { ...config, ...fileConfig };
       console.log(`Loaded configuration from ${configPath}`);
     } catch (error) {
@@ -134,7 +134,7 @@ export function loadConfig(): Config {
   if (args.toolDescription) config.toolDescription = args.toolDescription;
   if (args.enableBuildCleanup !== undefined)
     config.enableBuildCleanup =
-      args.enableBuildCleanup === true || args.enableBuildCleanup === "true";
+      args.enableBuildCleanup === true || args.enableBuildCleanup === 'true';
   if (args.amplifyGeneration) config.amplifyGeneration = args.amplifyGeneration;
 
   // Ensure dataDir is an absolute path
