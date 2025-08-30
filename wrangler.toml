@@ -1,0 +1,27 @@
+# Cloudflare Worker configuration for MCP Amplify Docs HTTP wrapper
+
+name = "amplify-docs-api"
+main = "worker-wrapper.js"
+compatibility_date = "2025-08-29"
+compatibility_flags = ["nodejs_compat"]
+
+# Environment variables (set via Cloudflare dashboard or CLI)
+# wrangler secret put MCP_SERVER_URL
+# wrangler secret put MCP_SERVER_TOKEN (optional)
+
+[env.production]
+name = "amplify-docs-api"
+
+[env.staging] 
+name = "amplify-docs-api-staging"
+
+# Optional: Custom domain
+# [[routes]]
+# pattern = "api.your-domain.com/*"
+# zone_name = "your-domain.com"
+
+# Usage analytics
+[analytics_engine_datasets]
+[[analytics_engine_datasets.bindings]]
+name = "SEARCH_ANALYTICS"
+dataset = "search_requests"

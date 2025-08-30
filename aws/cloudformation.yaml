@@ -1,0 +1,392 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Amplify Documentation MCP Server on ECS Fargate with ALB'
+
+Parameters:
+  ProjectName:
+    Type: String
+    Default: amplify-docs-mcp
+    Description: Name for the project resources
+  
+  ContainerImage:
+    Type: String
+    Description: ECR repository URI for the container image
+    Default: '123456789012.dkr.ecr.us-east-1.amazonaws.com/amplify-docs-mcp:latest'
+  
+  DesiredCount:
+    Type: Number
+    Default: 1
+    Description: Number of tasks to run
+  
+  AmplifyGeneration:
+    Type: String
+    Default: gen2
+    AllowedValues: [gen1, gen2, both]
+    Description: Which Amplify documentation generation to include
+  
+  AutoUpdateInterval:
+    Type: Number  
+    Default: 60
+    Description: Auto-update interval in minutes (0 to disable)
+
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: VPC ID where resources will be created
+  
+  SubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: Subnet IDs for the ALB and ECS tasks (minimum 2 in different AZs)
+
+Resources:
+  # ECS Cluster
+  # Note: ECS service-linked role will be created automatically if needed
+  ECSCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: !Sub '${ProjectName}-cluster'
+      CapacityProviders:
+        - FARGATE
+        - FARGATE_SPOT
+      DefaultCapacityProviderStrategy:
+        - CapacityProvider: FARGATE
+          Weight: 1
+
+  # EFS File System for persistent Git repository storage
+  EFSFileSystem:
+    Type: AWS::EFS::FileSystem
+    Properties:
+      FileSystemTags:
+        - Key: Name
+          Value: !Sub '${ProjectName}-efs'
+      PerformanceMode: generalPurpose
+      Encrypted: true
+
+  # EFS Mount Targets
+  EFSMountTarget1:
+    Type: AWS::EFS::MountTarget
+    Properties:
+      FileSystemId: !Ref EFSFileSystem
+      SubnetId: !Select [0, !Ref SubnetIds]
+      SecurityGroups:
+        - !Ref EFSSecurityGroup
+
+  EFSMountTarget2:
+    Type: AWS::EFS::MountTarget
+    Properties:
+      FileSystemId: !Ref EFSFileSystem
+      SubnetId: !Select [1, !Ref SubnetIds]
+      SecurityGroups:
+        - !Ref EFSSecurityGroup
+
+  EFSMountTarget3:
+    Type: AWS::EFS::MountTarget
+    Properties:
+      FileSystemId: !Ref EFSFileSystem
+      SubnetId: !Select [2, !Ref SubnetIds]
+      SecurityGroups:
+        - !Ref EFSSecurityGroup
+
+  EFSMountTarget4:
+    Type: AWS::EFS::MountTarget
+    Properties:
+      FileSystemId: !Ref EFSFileSystem
+      SubnetId: !Select [3, !Ref SubnetIds]
+      SecurityGroups:
+        - !Ref EFSSecurityGroup
+
+  EFSMountTarget5:
+    Type: AWS::EFS::MountTarget
+    Properties:
+      FileSystemId: !Ref EFSFileSystem
+      SubnetId: !Select [4, !Ref SubnetIds]
+      SecurityGroups:
+        - !Ref EFSSecurityGroup
+
+  EFSMountTarget6:
+    Type: AWS::EFS::MountTarget
+    Properties:
+      FileSystemId: !Ref EFSFileSystem
+      SubnetId: !Select [5, !Ref SubnetIds]
+      SecurityGroups:
+        - !Ref EFSSecurityGroup
+
+  # Security Groups
+  ALBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for ALB
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+          Description: HTTP from anywhere
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+          Description: HTTPS from anywhere
+
+  ECSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for ECS tasks
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 3000
+          ToPort: 3000
+          SourceSecurityGroupId: !Ref ALBSecurityGroup
+          Description: HTTP from ALB
+
+  EFSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for EFS
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 2049
+          ToPort: 2049
+          SourceSecurityGroupId: !Ref ECSSecurityGroup
+          Description: NFS from ECS tasks
+
+  # Application Load Balancer
+  ApplicationLoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: !Sub '${ProjectName}-alb'
+      Scheme: internet-facing
+      Type: application
+      Subnets: !Ref SubnetIds
+      SecurityGroups:
+        - !Ref ALBSecurityGroup
+
+  ALBTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub '${ProjectName}-tg'
+      Port: 3000
+      Protocol: HTTP
+      VpcId: !Ref VpcId
+      TargetType: ip
+      HealthCheckPath: /health
+      HealthCheckProtocol: HTTP
+      HealthCheckIntervalSeconds: 30
+      HealthCheckTimeoutSeconds: 10
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 3
+
+  ALBListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref ALBTargetGroup
+      LoadBalancerArn: !Ref ApplicationLoadBalancer
+      Port: 80
+      Protocol: HTTP
+
+  # IAM Roles
+  ECSTaskExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+      Policies:
+        - PolicyName: ECRAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ecr:GetAuthorizationToken
+                  - ecr:BatchCheckLayerAvailability
+                  - ecr:GetDownloadUrlForLayer
+                  - ecr:BatchGetImage
+                Resource: '*'
+
+  ECSTaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: EFSAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - elasticfilesystem:ClientMount
+                  - elasticfilesystem:ClientWrite
+                  - elasticfilesystem:ClientRootAccess
+                Resource: !Sub 'arn:aws:elasticfilesystem:${AWS::Region}:${AWS::AccountId}:file-system/${EFSFileSystem}'
+
+  # CloudWatch Log Group
+  LogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/ecs/${ProjectName}'
+      RetentionInDays: 7
+
+  # ECS Task Definition
+  TaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Sub '${ProjectName}-task'
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      Cpu: 1024  # 1 vCPU
+      Memory: 2048  # 2 GB
+      ExecutionRoleArn: !Ref ECSTaskExecutionRole
+      TaskRoleArn: !Ref ECSTaskRole
+      ContainerDefinitions:
+        - Name: !Sub '${ProjectName}-container'
+          Image: !Ref ContainerImage
+          Essential: true
+          PortMappings:
+            - ContainerPort: 3000
+              Protocol: tcp
+          Environment:
+            - Name: NODE_ENV
+              Value: production
+            - Name: PORT
+              Value: '3000'
+            - Name: DATA_DIR
+              Value: /mnt/efs/data
+            - Name: AMPLIFY_GENERATION
+              Value: !Ref AmplifyGeneration
+            - Name: AUTO_UPDATE_INTERVAL
+              Value: !Ref AutoUpdateInterval
+          MountPoints:
+            - SourceVolume: efs-storage
+              ContainerPath: /mnt/efs
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref LogGroup
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: ecs
+          HealthCheck:
+            Command:
+              - CMD-SHELL
+              - curl -f http://localhost:3000/health || exit 1
+            Interval: 30
+            Timeout: 10
+            Retries: 3
+            StartPeriod: 60
+      Volumes:
+        - Name: efs-storage
+          EFSVolumeConfiguration:
+            FileSystemId: !Ref EFSFileSystem
+            RootDirectory: /
+            TransitEncryption: ENABLED
+
+  # ECS Service
+  ECSService:
+    Type: AWS::ECS::Service
+    DependsOn: ALBListener
+    Properties:
+      ServiceName: !Sub '${ProjectName}-service'
+      Cluster: !Ref ECSCluster
+      TaskDefinition: !Ref TaskDefinition
+      DesiredCount: !Ref DesiredCount
+      LaunchType: FARGATE
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          SecurityGroups:
+            - !Ref ECSSecurityGroup
+          Subnets: !Ref SubnetIds
+          AssignPublicIp: ENABLED
+      LoadBalancers:
+        - ContainerName: !Sub '${ProjectName}-container'
+          ContainerPort: 3000
+          TargetGroupArn: !Ref ALBTargetGroup
+      HealthCheckGracePeriodSeconds: 300
+
+  # Auto Scaling
+  AutoScalingRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: application-autoscaling.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: ApplicationAutoScalingECSServicePolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ecs:DescribeServices
+                  - ecs:UpdateService
+                  - cloudwatch:PutMetricAlarm
+                  - cloudwatch:DescribeAlarms
+                  - cloudwatch:DeleteAlarms
+                Resource: '*'
+
+  ScalableTarget:
+    Type: AWS::ApplicationAutoScaling::ScalableTarget
+    Properties:
+      MaxCapacity: 10
+      MinCapacity: 1
+      ResourceId: !Sub 'service/${ECSCluster}/${ECSService.Name}'
+      RoleARN: !GetAtt AutoScalingRole.Arn
+      ScalableDimension: ecs:service:DesiredCount
+      ServiceNamespace: ecs
+
+  ScalingPolicy:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    Properties:
+      PolicyName: !Sub '${ProjectName}-scaling-policy'
+      PolicyType: TargetTrackingScaling
+      ScalingTargetId: !Ref ScalableTarget
+      TargetTrackingScalingPolicyConfiguration:
+        PredefinedMetricSpecification:
+          PredefinedMetricType: ECSServiceAverageCPUUtilization
+        TargetValue: 70.0
+        ScaleOutCooldown: 300
+        ScaleInCooldown: 300
+
+Outputs:
+  LoadBalancerURL:
+    Description: URL of the Application Load Balancer
+    Value: !Sub 'http://${ApplicationLoadBalancer.DNSName}'
+    Export:
+      Name: !Sub '${ProjectName}-LoadBalancerURL'
+
+  LoadBalancerDNSName:
+    Description: DNS name of the Application Load Balancer
+    Value: !GetAtt ApplicationLoadBalancer.DNSName
+    Export:
+      Name: !Sub '${ProjectName}-LoadBalancerDNSName'
+
+  ECSClusterName:
+    Description: Name of the ECS Cluster
+    Value: !Ref ECSCluster
+    Export:
+      Name: !Sub '${ProjectName}-ECSCluster'
+
+  EFSFileSystemId:
+    Description: ID of the EFS File System
+    Value: !Ref EFSFileSystem
+    Export:
+      Name: !Sub '${ProjectName}-EFSFileSystem'

@@ -1,0 +1,28 @@
+{
+  "$schema": "https://railway.app/railway.schema.json",
+  "build": {
+    "builder": "nixpacks"
+  },
+  "deploy": {
+    "startCommand": "npm run build && npm run start:http",
+    "healthcheckPath": "/health",
+    "healthcheckTimeout": 30,
+    "restartPolicyType": "always"
+  },
+  "environments": {
+    "production": {
+      "variables": {
+        "NODE_ENV": "production",
+        "AMPLIFY_GENERATION": "gen2",
+        "AUTO_UPDATE_INTERVAL": "60"
+      }
+    },
+    "staging": {
+      "variables": {
+        "NODE_ENV": "staging",
+        "AMPLIFY_GENERATION": "both",
+        "AUTO_UPDATE_INTERVAL": "120"
+      }
+    }
+  }
+}
